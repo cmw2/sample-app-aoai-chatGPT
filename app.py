@@ -19,6 +19,8 @@ from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry import trace
 
 from backend.utils import (
     format_as_ndjson,
@@ -36,6 +38,8 @@ bp = Blueprint("routes", __name__, static_folder="static", template_folder="stat
 MINIMUM_SUPPORTED_AZURE_OPENAI_PREVIEW_API_VERSION = "2024-02-15-preview"
 
 load_dotenv()
+
+configure_azure_monitor()
 
 # UI configuration (optional)
 UI_TITLE = os.environ.get("UI_TITLE") or "Contoso"
