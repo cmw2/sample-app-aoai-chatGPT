@@ -21,6 +21,7 @@ from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
 from azure.monitor.opentelemetry import configure_azure_monitor
 from opentelemetry import trace
+from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
 
 from backend.utils import (
     format_as_ndjson,
@@ -56,6 +57,7 @@ UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() ==
 
 def create_app():
     app = Quart(__name__)
+    app.asgi_app = OpenTelemetryMiddleware(app.asgi_app)
     app.register_blueprint(bp)
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     return app
