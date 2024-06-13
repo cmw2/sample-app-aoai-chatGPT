@@ -1,4 +1,18 @@
 import React from "react";
+import { ApplicationInsights } from '@microsoft/applicationinsights-web';
+import { ReactPlugin} from '@microsoft/applicationinsights-react-js';
+
+var reactPlugin = new ReactPlugin();
+var appInsights = new ApplicationInsights({
+    config: {
+        connectionString: import.meta.env.VITE_APPINSCONSTR,
+        enableAutoRouteTracking: true,
+        extensions: [reactPlugin]        
+    }
+});
+
+appInsights.loadAppInsights();
+
 import ReactDOM from "react-dom/client";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { initializeIcons } from "@fluentui/react";
