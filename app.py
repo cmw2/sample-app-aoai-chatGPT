@@ -15,10 +15,12 @@ from quart import (
     render_template,
 )
 
-from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
+from azure.monitor.opentelemetry import configure_azure_monitor
+from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 
 from backend.utils import (
     format_as_ndjson,
@@ -37,6 +39,17 @@ MINIMUM_SUPPORTED_AZURE_OPENAI_PREVIEW_API_VERSION = "2024-02-15-preview"
 
 load_dotenv()
 
+configure_azure_monitor()
+HTTPXClientInstrumentor().instrument()
+from openai import AsyncAzureOpenAI
+
+# logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(logging.DEBUG)
+# logging.getLogger("azure.monitor.opentelemetry.exporter.export").setLevel(logging.DEBUG)
+# logging.getLogger("urllib3").setLevel(logging.DEBUG)
+# logging.getLogger("httpcore").setLevel(logging.DEBUG)
+# logging.getLogger("openai").setLevel(logging.DEBUG)
+
+
 # UI configuration (optional)
 UI_TITLE = os.environ.get("UI_TITLE") or "Contoso"
 UI_LOGO = os.environ.get("UI_LOGO")
@@ -52,6 +65,7 @@ UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() ==
 
 def create_app():
     app = Quart(__name__)
+    app.asgi_app = OpenTelemetryMiddleware(app.asgi_app)
     app.register_blueprint(bp)
     app.config["TEMPLATES_AUTO_RELOAD"] = True
     return app

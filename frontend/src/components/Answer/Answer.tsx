@@ -84,6 +84,13 @@ export const Answer = ({
         else if (citation.filepath && citation.reindex_id) {
             citationFilename = `${citation.filepath} - Part ${citation.reindex_id}`;
         }
+        else if (citation.url){
+            if (citation.title) {
+                citationFilename = citation.title;
+            } else {
+                citationFilename = citation.url;
+            }            
+        }
         else {
             citationFilename = `Citation ${index}`;
         }
@@ -265,19 +272,39 @@ export const Answer = ({
                     <div className={styles.citationWrapper} >
                         {parsedAnswer.citations.map((citation, idx) => {
                             return (
-                                <span 
-                                    title={createCitationFilepath(citation, ++idx)} 
-                                    tabIndex={0} 
-                                    role="link" 
-                                    key={idx} 
-                                    onClick={() => onCitationClicked(citation)} 
-                                    onKeyDown={e => e.key === "Enter" || e.key === " " ? onCitationClicked(citation) : null}
-                                    className={styles.citationContainer}
-                                    aria-label={createCitationFilepath(citation, idx)}
-                                >
-                                    <div className={styles.citation}>{idx}</div>
-                                    {createCitationFilepath(citation, idx, true)}
-                                </span>);
+                                <>
+                                {citation.url ? (
+                                    <a
+                                        href={citation.url}
+                                        title={createCitationFilepath(citation, ++idx)}
+                                        tabIndex={0}
+                                        role="link"
+                                        key={idx}
+                                        className={styles.citationContainer}
+                                        aria-label={createCitationFilepath(citation, idx)}
+                                        target="_blank" // Add target="_blank" to open in a new tab
+                                        rel="noopener noreferrer" // Add rel="noopener noreferrer" for security reasons
+                                    >
+                                        <div className={styles.citation}>{idx}</div>
+                                        {createCitationFilepath(citation, idx, true)}
+                                    </a>
+                                ) : (
+                                    <span 
+                                        title={createCitationFilepath(citation, ++idx)} 
+                                        tabIndex={0} 
+                                        role="link" 
+                                        key={idx} 
+                                        onClick={() => onCitationClicked(citation)} 
+                                        onKeyDown={e => e.key === "Enter" || e.key === " " ? onCitationClicked(citation) : null}
+                                        className={styles.citationContainer}
+                                        aria-label={createCitationFilepath(citation, idx)}
+                                    >
+                                        <div className={styles.citation}>{idx}</div>
+                                        {createCitationFilepath(citation, idx, true)}
+                                    </span>
+                                )}
+                                </>                            
+                            );
                         })}
                     </div>
                 }
