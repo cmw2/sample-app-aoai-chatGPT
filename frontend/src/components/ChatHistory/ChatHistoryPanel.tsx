@@ -1,22 +1,7 @@
 import { useContext } from 'react'
 import React from 'react'
-import {
-  CommandBarButton,
-  ContextualMenu,
-  DefaultButton,
-  Dialog,
-  DialogFooter,
-  DialogType,
-  ICommandBarStyles,
-  IContextualMenuItem,
-  IStackStyles,
-  PrimaryButton,
-  Spinner,
-  SpinnerSize,
-  Stack,
-  StackItem,
-  Text
-} from '@fluentui/react'
+// @ts-ignore
+import {  CommandBarButton,  ContextualMenu,  DefaultButton,  Dialog,  DialogFooter,  DialogType,  ICommandBarStyles,  IContextualMenuItem,  IStackStyles,  PrimaryButton,  Spinner,  SpinnerSize,  Stack,  StackItem,  Text} from '@fluentui/react'
 import { useBoolean } from '@fluentui/react-hooks'
 
 import { ChatHistoryLoadingState, historyDeleteAll } from '../../api'

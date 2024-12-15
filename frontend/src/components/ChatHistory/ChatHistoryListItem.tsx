@@ -1,21 +1,7 @@
 import * as React from 'react'
 import { useContext, useEffect, useRef, useState } from 'react'
-import {
-  DefaultButton,
-  Dialog,
-  DialogFooter,
-  DialogType,
-  IconButton,
-  ITextField,
-  List,
-  PrimaryButton,
-  Separator,
-  Spinner,
-  SpinnerSize,
-  Stack,
-  Text,
-  TextField
-} from '@fluentui/react'
+// @ts-ignore
+import {  DefaultButton,  Dialog,  DialogFooter,  DialogType,  IconButton,  ITextField,  List,  PrimaryButton,  Separator,  Spinner,  SpinnerSize,  Stack,  Text,  TextField} from '@fluentui/react'
 import { useBoolean } from '@fluentui/react-hooks'
 
 import { historyDelete, historyList, historyRename } from '../../api'
@@ -181,7 +167,7 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
       aria-label="chat history item"
       className={styles.itemCell}
       onClick={() => handleSelectItem()}
-      onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
+      onKeyDown={(e: any) => (e.key === 'Enter' || e.key === ' ' ? handleSelectItem() : null)}
       verticalAlign="center"
       // horizontal
       onMouseEnter={() => setIsHovered(true)}
@@ -214,8 +200,8 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
                       <IconButton
                         role="button"
                         disabled={errorRename !== undefined}
-                        onKeyDown={e => (e.key === ' ' || e.key === 'Enter' ? handleSaveEdit(e) : null)}
-                        onClick={e => handleSaveEdit(e)}
+                        onKeyDown={(e: any) => (e.key === ' ' || e.key === 'Enter' ? handleSaveEdit(e) : null)}
+                        onClick={(e: any) => handleSaveEdit(e)}
                         aria-label="confirm new title"
                         iconProps={{ iconName: 'CheckMark' }}
                         styles={{ root: { color: 'green', marginLeft: '5px' } }}
@@ -223,7 +209,7 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
                       <IconButton
                         role="button"
                         disabled={errorRename !== undefined}
-                        onKeyDown={e => (e.key === ' ' || e.key === 'Enter' ? cancelEditTitle() : null)}
+                        onKeyDown={(e: any) => (e.key === ' ' || e.key === 'Enter' ? cancelEditTitle() : null)}
                         onClick={() => cancelEditTitle()}
                         aria-label="cancel edit title"
                         iconProps={{ iconName: 'Cancel' }}
@@ -255,14 +241,14 @@ export const ChatHistoryListItemCell: React.FC<ChatHistoryListItemCellProps> = (
                   iconProps={{ iconName: 'Delete' }}
                   title="Delete"
                   onClick={toggleDeleteDialog}
-                  onKeyDown={e => (e.key === ' ' ? toggleDeleteDialog() : null)}
+                  onKeyDown={(e: any) => (e.key === ' ' ? toggleDeleteDialog() : null)}
                 />
                 <IconButton
                   className={styles.itemButton}
                   iconProps={{ iconName: 'Edit' }}
                   title="Edit"
                   onClick={onEdit}
-                  onKeyDown={e => (e.key === ' ' ? onEdit() : null)}
+                  onKeyDown={(e: any) => (e.key === ' ' ? onEdit() : null)}
                 />
               </Stack>
             )}

@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useContext, useLayoutEffect } from 'react'
+// @ts-ignore
 import { CommandBarButton, IconButton, Dialog, DialogType, Stack } from '@fluentui/react'
 import { SquareRegular, ShieldLockRegular, ErrorCircleRegular } from '@fluentui/react-icons'
 
@@ -859,7 +860,7 @@ const Chat = () => {
                   aria-label="Stop generating"
                   tabIndex={0}
                   onClick={stopGenerating}
-                  onKeyDown={e => (e.key === 'Enter' || e.key === ' ' ? stopGenerating() : null)}>
+                  onKeyDown={(e: any) => (e.key === 'Enter' || e.key === ' ' ? stopGenerating() : null)}>
                   <SquareRegular className={styles.stopGeneratingIcon} aria-hidden="true" />
                   <span className={styles.stopGeneratingText} aria-hidden="true">
                     Stop generating

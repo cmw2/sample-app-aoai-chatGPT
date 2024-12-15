@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HashRouter, Route, Routes } from 'react-router-dom'
+// @ts-ignore
 import { initializeIcons } from '@fluentui/react'
 
 import Chat from './pages/chat/Chat'

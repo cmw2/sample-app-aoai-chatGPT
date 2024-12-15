@@ -1,4 +1,5 @@
 import React, { useContext } from 'react'
+// @ts-ignore
 import { Stack, StackItem, Text } from '@fluentui/react'
 
 import { Conversation } from '../../api/models'

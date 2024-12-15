@@ -1,3 +1,4 @@
+// @ts-ignore
 import { CommandBarButton, DefaultButton, IButtonProps } from '@fluentui/react'
 
 import styles from './Button.module.css'
