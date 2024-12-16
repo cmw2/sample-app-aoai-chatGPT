@@ -711,11 +711,33 @@ const Chat = () => {
     setIsIntentsPanelOpen(true)
   }
 
-  const onViewSource = (citation: Citation) => {
-    if (citation.url && !citation.url.includes('blob.core')) {
-      window.open(citation.url, '_blank')
+  // const onViewSource = (citation: Citation) => {
+  //   if (citation.url && !citation.url.includes('blob.core')) {
+  //     window.open(citation.url, '_blank')
+  //   }
+  // }
+
+  const onViewSource = async (citation: Citation) => {
+    if (citation.url && citation.url.includes('blob.core')) {
+      const response = await fetch('/generate-sas-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          blob_url: citation.url
+        })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        window.open(data.sas_url, '_blank');
+      } else {
+        console.error('Failed to generate SAS token:', data.message);
+      }
+    } else if (citation.url) {
+      window.open(citation.url, '_blank');
     }
-  }
+  };
 
   const parseCitationFromMessage = (message: ChatMessage) => {
     if (message?.role && message?.role === 'tool' && typeof message?.content === "string") {

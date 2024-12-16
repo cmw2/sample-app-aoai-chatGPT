@@ -35,6 +35,9 @@ from backend.utils import (
     convert_to_pf_format,
     format_pf_non_streaming_response,
 )
+from urllib.parse import urlparse
+from backend.storage.sas_token import generate_sas_token  # Import the function
+
 
 bp = Blueprint("routes", __name__, static_folder="static", template_folder="static")
 
@@ -881,5 +884,26 @@ async def generate_title(conversation_messages) -> str:
         logging.exception("Exception while generating title", e)
         return messages[-2]["content"]
 
+
+@bp.route('/generate-sas-token', methods=['POST'])
+async def get_sas_token():
+    data = await request.get_json()
+    blob_url = data.get('blob_url')
+    if not blob_url:
+        return jsonify({'message': 'Invalid blob URL!'}), 400
+
+    parsed_url = urlparse(blob_url)
+    path_parts = parsed_url.path.lstrip('/').split('/')
+    if len(path_parts) < 2:
+        return jsonify({'message': 'Invalid blob URL!'}), 400
+
+    container_name = path_parts[0]
+    blob_name = '/'.join(path_parts[1:])
+    sas_url = generate_sas_token(container_name, blob_name)
+    return jsonify({'sas_url': sas_url})
+
+def is_valid_blob_name(blob_name):
+    import re
+    return re.match(r'^[a-zA-Z0-9\-_/.]+$', blob_name) is not None
 
 app = create_app()
