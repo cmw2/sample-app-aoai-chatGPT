@@ -49,7 +49,6 @@ class _UiSettings(BaseSettings):
     favicon: str = "/favicon.ico"
     show_share_button: bool = True
     show_chat_history_button: bool = True
-    azure_storage_connection_string: str
 
 
 class _ChatHistorySettings(BaseSettings):
@@ -757,6 +756,7 @@ class _BaseSettings(BaseSettings):
     auth_enabled: bool = True
     sanitize_answer: bool = False
     use_promptflow: bool = False
+    azure_storage_connection_string: str
 
 
 class _AppSettings(BaseModel):

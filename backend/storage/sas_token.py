@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from backend.settings import app_settings
 
 def generate_sas_token(container_name, blob_name):
-    connection_string = app_settings.ui.azure_storage_connection_string
+    connection_string = app_settings.base_settings.azure_storage_connection_string
     if not connection_string:
         raise ValueError("AZURE_STORAGE_CONNECTION_STRING environment variable is not set")
 
