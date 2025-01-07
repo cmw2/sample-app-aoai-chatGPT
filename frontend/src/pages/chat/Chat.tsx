@@ -725,7 +725,8 @@ const Chat = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          blob_url: citation.url
+          blob_url: citation.url,
+          unencoded_filename: citation.filepath
         })
       });
       const data = await response.json();

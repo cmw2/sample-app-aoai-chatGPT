@@ -889,6 +889,7 @@ async def generate_title(conversation_messages) -> str:
 async def get_sas_token():
     data = await request.get_json()
     blob_url = data.get('blob_url')
+    unencoded_filename = data.get('unencoded_filename')
     if not blob_url:
         return jsonify({'message': 'Invalid blob URL!'}), 400
 
@@ -898,8 +899,10 @@ async def get_sas_token():
         return jsonify({'message': 'Invalid blob URL!'}), 400
 
     container_name = path_parts[0]
-    blob_name = '/'.join(path_parts[1:])
-    sas_url = generate_sas_token(container_name, blob_name)
+    blob_path = '/'.join(path_parts[1:])
+    # Replace the encoded file name with the unencoded file name
+    blob_path = blob_path.replace(path_parts[-1], unencoded_filename)
+    sas_url = generate_sas_token(container_name, blob_path)
     return jsonify({'sas_url': sas_url})
 
 def is_valid_blob_name(blob_name):
