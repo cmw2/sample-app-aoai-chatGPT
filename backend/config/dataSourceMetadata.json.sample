@@ -1,0 +1,36 @@
+[
+  {
+    "id": "first-datasource",
+    "name": "Your First Data Source",
+    "description": "Description of your first data source and what types of questions it can answer",
+    "keywords": [
+      "keyword1",
+      "keyword2",
+      "topic1",
+      "topic2",
+      "relevant",
+      "terms",
+      "for",
+      "your",
+      "first",
+      "datasource"
+    ]
+  },
+  {
+    "id": "second-datasource", 
+    "name": "Your Second Data Source",
+    "description": "Description of your second data source and what types of questions it can answer",
+    "keywords": [
+      "different",
+      "keywords",
+      "topic3",
+      "topic4", 
+      "relevant",
+      "terms",
+      "for",
+      "your",
+      "second",
+      "datasource"
+    ]
+  }
+]

@@ -16,7 +16,7 @@ from pydantic import (
 )
 from pydantic.alias_generators import to_snake
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 from typing_extensions import Self
 from quart import Request
 from backend.utils import parse_multi_columns, generateFilterString
@@ -748,8 +748,79 @@ class _MongoDbSettings(BaseSettings, DatasourcePayloadConstructor):
             "type": self._type,
             "parameters": parameters
         }
+
+
+class _DataSourceMetadata(BaseModel):
+    """Metadata for a single data source used in routing decisions."""
+    id: str
+    name: str
+    description: str
+    keywords: List[str]
+
+
+class _MultiDataSourceSettings(DatasourcePayloadConstructor):
+    """Settings for multi-datasource routing support."""
+    _type: Literal["multi_datasource"] = PrivateAttr(default="multi_datasource")
+    
+    # Constructed fields
+    datasources: List[Dict[str, Any]] = Field(default_factory=list, exclude=True)
+    metadata: List[_DataSourceMetadata] = Field(default_factory=list, exclude=True)
+    routing_deployment: Optional[str] = Field(default=None, exclude=True)
+    
+    def __init__(self, settings: "_AppSettings", **kwargs):
+        super().__init__(settings=settings, **kwargs)
         
+        # Import here to avoid circular imports
+        from backend.config_utils import load_datasources_config, load_metadata_config, validate_datasources_config
         
+        # Load datasources configuration
+        config_dir = os.path.join(os.path.dirname(__file__), "config")
+        datasources_path = os.path.join(config_dir, "dataSources.json")
+        metadata_path = os.path.join(config_dir, "dataSourceMetadata.json")
+        
+        try:
+            self.datasources = load_datasources_config(datasources_path)
+            metadata_raw = load_metadata_config(metadata_path)
+            self.metadata = [_DataSourceMetadata(**meta) for meta in metadata_raw]
+            
+            # Validate configuration
+            validate_datasources_config(self.datasources, [meta.model_dump() for meta in self.metadata])
+            
+            # Set routing deployment
+            self.routing_deployment = (
+                settings.base_settings.routing_deployment_name or 
+                settings.azure_openai.model
+            )
+            
+            logging.info(f"Loaded {len(self.datasources)} data sources for multi-datasource routing")
+            
+        except Exception as e:
+            logging.error(f"Failed to initialize multi-datasource settings: {e}")
+            raise
+    
+    def get_datasource_by_index(self, index: int) -> Dict[str, Any]:
+        """Get datasource configuration by index."""
+        if 0 <= index < len(self.datasources):
+            return self.datasources[index]
+        else:
+            logging.warning(f"Invalid datasource index {index}, falling back to index 0")
+            return self.datasources[0] if self.datasources else None
+    
+    def construct_payload_configuration(
+        self,
+        *args,
+        **kwargs
+    ):
+        """
+        This method should not be called directly on MultiDataSourceSettings.
+        Use get_datasource_by_index() and construct the payload from the individual datasource.
+        """
+        raise NotImplementedError(
+            "Multi-datasource settings cannot construct a single payload. "
+            "Use get_datasource_by_index() to get individual datasource configurations."
+        )
+
+
 class _BaseSettings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=DOTENV_PATH,
@@ -761,6 +832,9 @@ class _BaseSettings(BaseSettings):
     auth_enabled: bool = True
     sanitize_answer: bool = False
     use_promptflow: bool = False
+    # Multi-datasource settings
+    multi_datasource_enabled: bool = Field(default=False, validation_alias="MULTI_DATASOURCE_ENABLED")
+    routing_deployment_name: Optional[str] = Field(default=None, validation_alias="AZURE_OPENAI_ROUTING_DEPLOYMENT_NAME")
 
 
 class _AppSettings(BaseModel):
@@ -797,7 +871,12 @@ class _AppSettings(BaseModel):
     @model_validator(mode="after")
     def set_datasource_settings(self) -> Self:
         try:
-            if self.base_settings.datasource_type == "AzureCognitiveSearch":
+            # Check if multi-datasource is enabled
+            if self.base_settings.multi_datasource_enabled:
+                self.datasource = _MultiDataSourceSettings(settings=self)
+                logging.debug("Using Multi-DataSource routing")
+                
+            elif self.base_settings.datasource_type == "AzureCognitiveSearch":
                 self.datasource = _AzureSearchSettings(settings=self, _env_file=DOTENV_PATH)
                 logging.debug("Using Azure Cognitive Search")
             

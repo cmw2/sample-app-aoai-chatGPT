@@ -238,10 +238,13 @@ async def init_cosmosdb_client():
     return cosmos_conversation_client
 
 
-def prepare_model_args(request_body, request_headers):
+def prepare_model_args(request_body, request_headers, datasource_override=None):
+    # Use override datasource if provided, otherwise use global settings
+    effective_datasource = datasource_override if datasource_override is not None else app_settings.datasource
+    
     request_messages = request_body.get("messages", [])
     messages = []
-    if not app_settings.datasource:
+    if not effective_datasource:
         messages = [
             {
                 "role": "system",
@@ -296,10 +299,10 @@ def prepare_model_args(request_body, request_headers):
             if app_settings.azure_openai.function_call_azure_functions_enabled and len(azure_openai_tools) > 0:
                 model_args["tools"] = azure_openai_tools
 
-            if app_settings.datasource:
+            if effective_datasource:
                 model_args["extra_body"] = {
                     "data_sources": [
-                        app_settings.datasource.construct_payload_configuration(
+                        effective_datasource.construct_payload_configuration(
                             request=request
                         )
                     ]
@@ -418,21 +421,62 @@ async def process_function_call(response):
     
     return None
 
-async def send_chat_request(request_body, request_headers):
-    filtered_messages = []
-    messages = request_body.get("messages", [])
-    for message in messages:
-        if message.get("role") != 'tool':
-            filtered_messages.append(message)
-            
-    request_body['messages'] = filtered_messages
-    model_args = prepare_model_args(request_body, request_headers)
-
+async def send_chat_request(request_body, request_headers, selected_datasource=None):
     try:
+        filtered_messages = []
+        messages = request_body.get("messages", [])
+        for message in messages:
+            if message.get("role") != 'tool':
+                filtered_messages.append(message)
+                
+        request_body['messages'] = filtered_messages
+        
+        # Initialize Azure OpenAI client once for this request
         azure_openai_client = await init_openai_client()
+        
+        # Handle multi-datasource routing if enabled and no datasource provided
+        if (selected_datasource is None and 
+            app_settings.base_settings.multi_datasource_enabled and 
+            hasattr(app_settings.datasource, '_type') and 
+            app_settings.datasource._type == 'multi_datasource'):
+            
+            # Extract user query for routing
+            user_query = None
+            if messages and len(messages) > 0 and messages[-1].get("role") == "user":
+                user_query = messages[-1].get("content", "")
+            
+            if user_query:
+                try:
+                    # Import routing function
+                    from backend.routing import get_routed_datasource_payload
+                    
+                    # Get routed datasource payload - this will be used locally
+                    selected_datasource_payload = await get_routed_datasource_payload(
+                        user_query=user_query,
+                        multi_datasource_settings=app_settings.datasource,
+                        app_settings=app_settings,
+                        azure_openai_client=azure_openai_client,
+                        request=request
+                    )
+                    
+                    # Create datasource wrapper for this request only
+                    from backend.routing import SelectedDataSourceWrapper
+                    selected_datasource = SelectedDataSourceWrapper(selected_datasource_payload)
+                    
+                except Exception as e:
+                    logging.error(f"Multi-datasource routing failed: {e}")
+                    # Continue with original datasource
+                    selected_datasource = app_settings.datasource
+        
+        # Use the selected datasource or fall back to global datasource
+        effective_datasource = selected_datasource if selected_datasource is not None else app_settings.datasource
+        
+        model_args = prepare_model_args(request_body, request_headers, datasource_override=effective_datasource)
+        
         raw_response = await azure_openai_client.chat.completions.with_raw_response.create(**model_args)
         response = raw_response.parse()
         apim_request_id = raw_response.headers.get("apim-request-id") 
+        
     except Exception as e:
         logging.exception("Exception in send_chat_request")
         raise e

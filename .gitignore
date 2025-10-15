@@ -5,3 +5,11 @@ frontend/node_modules
 .azure/
 __pycache__/
 .ipynb_checkpoints/
+
+# Multi-datasource config files (environment-specific)
+backend/config/dataSources.json
+backend/config/dataSourceMetadata.json
+
+# But include the sample files
+!backend/config/dataSources.json.sample
+!backend/config/dataSourceMetadata.json.sample
