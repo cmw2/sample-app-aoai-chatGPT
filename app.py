@@ -14,6 +14,7 @@ from quart import (
     send_from_directory,
     render_template,
     current_app,
+    websocket,
 )
 
 from openai import AsyncAzureOpenAI
@@ -35,6 +36,7 @@ from backend.utils import (
     convert_to_pf_format,
     format_pf_non_streaming_response,
 )
+from backend.speech import AzureSpeechService, SpeechWebSocketHandler
 
 bp = Blueprint("routes", __name__, static_folder="static", template_folder="static")
 
@@ -55,6 +57,13 @@ def create_app():
             logging.exception("Failed to initialize CosmosDB client")
             app.cosmos_conversation_client = None
             raise e
+        
+        # Initialize Speech Service (non-blocking - add this AFTER CosmosDB)
+        try:
+            init_speech_service()
+        except Exception as e:
+            logging.exception("Failed to initialize Speech Service")
+            # Don't raise exception - app can still work without speech
     
     return app
 
@@ -104,11 +113,42 @@ frontend_settings = {
     },
     "sanitize_answer": app_settings.base_settings.sanitize_answer,
     "oyd_enabled": app_settings.base_settings.datasource_type,
+    "speech_enabled": app_settings.azure_speech is not None and app_settings.azure_speech.enabled,
 }
 
 
 # Enable Microsoft Defender for Cloud Integration
 MS_DEFENDER_ENABLED = os.environ.get("MS_DEFENDER_ENABLED", "true").lower() == "true"
+
+# Initialize Speech Service
+speech_service = None
+speech_websocket_handler = None
+
+def init_speech_service():
+    """Initialize Azure Speech Service if configured."""
+    global speech_service, speech_websocket_handler
+    
+    if not app_settings.azure_speech or not app_settings.azure_speech.enabled:
+        logging.info("Azure Speech Service not configured or disabled")
+        speech_service = None
+        speech_websocket_handler = None
+        return
+    
+    try:
+        speech_service = AzureSpeechService(
+            speech_key=app_settings.azure_speech.key,
+            service_region=app_settings.azure_speech.region,
+            language=app_settings.azure_speech.language,
+            endpoint=app_settings.azure_speech.endpoint
+        )
+        
+        speech_websocket_handler = SpeechWebSocketHandler(speech_service)
+        logging.info(f"Azure Speech Service initialized for region: {app_settings.azure_speech.region}")
+        
+    except Exception as e:
+        logging.error(f"Failed to initialize Azure Speech Service: {e}")
+        speech_service = None
+        speech_websocket_handler = None
 
 
 azure_openai_tools = []
@@ -228,6 +268,15 @@ async def init_cosmosdb_client():
                 container_name=app_settings.chat_history.conversations_container,
                 enable_message_feedback=app_settings.chat_history.enable_feedback,
             )
+            
+            # Log successful initialization
+            auth_method = "managed identity" if not app_settings.chat_history.account_key else "account key"
+            logging.info(f"✅ CosmosDB initialized successfully using {auth_method}")
+            logging.info(f"   Account: {app_settings.chat_history.account}")
+            logging.info(f"   Database: {app_settings.chat_history.database}")
+            logging.info(f"   Container: {app_settings.chat_history.conversations_container}")
+            logging.info(f"   Feedback enabled: {app_settings.chat_history.enable_feedback}")
+            
         except Exception as e:
             logging.exception("Exception in CosmosDB initialization", e)
             cosmos_conversation_client = None
@@ -580,6 +629,54 @@ async def conversation_internal(request_body, request_headers):
             return jsonify({"error": str(ex)}), ex.status_code
         else:
             return jsonify({"error": str(ex)}), 500
+
+
+@bp.websocket("/speech/stream")
+async def speech_stream():
+    """WebSocket endpoint for real-time speech-to-text streaming."""
+    if not speech_websocket_handler:
+        await websocket.send(json.dumps({
+            'type': 'error',
+            'error': 'Speech service not available'
+        }))
+        return
+    
+    # Generate unique session ID
+    session_id = str(uuid.uuid4())
+    
+    try:
+        # Handle WebSocket connection for speech recognition
+        await speech_websocket_handler.handle_websocket_connection(session_id)
+        
+    except Exception as e:
+        logging.error(f"Error in speech WebSocket endpoint: {e}")
+        try:
+            await websocket.send(json.dumps({
+                'type': 'error',
+                'error': str(e)
+            }))
+        except:
+            pass  # Connection might be closed
+
+
+@bp.route("/speech/config", methods=["GET"])
+async def speech_config():
+    """Get speech service configuration for the frontend."""
+    if not app_settings.azure_speech or not app_settings.azure_speech.enabled:
+        return jsonify({"error": "Speech service not configured"}), 404
+    
+    return jsonify({
+        "enabled": True,
+        "language": app_settings.azure_speech.language,
+        "region": app_settings.azure_speech.region,
+        "supported_languages": ["en-US", "es-ES", "fr-FR", "de-DE", "it-IT", "pt-BR", "zh-CN", "ja-JP"],
+        "audio_format": {
+            "sample_rate": 16000,
+            "channels": 1,
+            "bit_depth": 16,
+            "format": "PCM"
+        }
+    })
 
 
 @bp.route("/conversation", methods=["POST"])

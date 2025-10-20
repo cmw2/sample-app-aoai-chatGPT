@@ -82,6 +82,34 @@ class _PromptflowSettings(BaseSettings):
     citations_field_name: str = "documents"
 
 
+class _AzureSpeechSettings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_prefix="AZURE_SPEECH_",
+        env_file=DOTENV_PATH,
+        extra="ignore",
+        env_ignore_empty=True
+    )
+
+    key: Optional[str] = None
+    region: str = "eastus"
+    endpoint: Optional[str] = None
+    language: str = "en-US"
+    enabled: bool = True
+    # Advanced settings for speech recognition
+    phrase_hints: Optional[List[str]] = None
+    profanity_filter: str = "masked"  # masked, removed, raw
+    output_format: str = "detailed"  # simple, detailed
+    # Scalability settings
+    max_concurrent_sessions: int = 100  # Azure Speech Services default limit
+    session_timeout_minutes: int = 30   # Auto-cleanup idle sessions
+    
+    def get_endpoint_url(self) -> str:
+        """Get the speech service endpoint URL"""
+        if self.endpoint:
+            return self.endpoint
+        return f"https://{self.region}.api.cognitive.microsoft.com/"
+
+
 class _AzureOpenAIFunction(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
@@ -773,6 +801,7 @@ class _AppSettings(BaseModel):
     chat_history: Optional[_ChatHistorySettings] = None
     datasource: Optional[DatasourcePayloadConstructor] = None
     promptflow: Optional[_PromptflowSettings] = None
+    azure_speech: Optional[_AzureSpeechSettings] = None
 
     @model_validator(mode="after")
     def set_promptflow_settings(self) -> Self:
@@ -781,6 +810,19 @@ class _AppSettings(BaseModel):
             
         except ValidationError:
             self.promptflow = None
+            
+        return self
+    
+    @model_validator(mode="after")
+    def set_speech_settings(self) -> Self:
+        try:
+            self.azure_speech = _AzureSpeechSettings()
+            logging.debug(f"Azure Speech Services configured for region: {self.azure_speech.region}")
+            
+        except ValidationError as e:
+            self.azure_speech = None
+            logging.warning("Azure Speech Services not configured - speech functionality will be disabled")
+            logging.warning(e.errors())
             
         return self
     
