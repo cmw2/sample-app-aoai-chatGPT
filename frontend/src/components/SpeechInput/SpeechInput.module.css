@@ -1,0 +1,305 @@
+/* SpeechInput Component Styles */
+
+.speechContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  padding: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.microphoneButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.microphoneButton:hover {
+  transform: scale(1.05);
+}
+
+.microphoneButton:active {
+  transform: scale(0.95);
+}
+
+/* Recording state */
+.microphoneButton.recording {
+  border-color: #d13438;
+  background: linear-gradient(45deg, #ff4757, #d13438);
+  animation: pulse 1.5s infinite ease-in-out;
+  box-shadow: 0 0 20px rgba(209, 52, 56, 0.4);
+}
+
+/* Idle state */
+.microphoneButton.idle {
+  border-color: #0078d4;
+  color: #0078d4;
+}
+
+.microphoneButton.idle:hover {
+  background: rgba(0, 120, 212, 0.1);
+  box-shadow: 0 0 15px rgba(0, 120, 212, 0.2);
+}
+
+/* Error state */
+.microphoneButton.error {
+  border-color: #d13438;
+  color: #d13438;
+  background: rgba(209, 52, 56, 0.1);
+}
+
+/* Disabled state */
+.microphoneButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.microphoneButton:disabled:hover {
+  transform: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Microphone icon */
+.microphoneIcon {
+  font-size: 24px;
+  z-index: 1;
+  position: relative;
+}
+
+.microphoneButton.recording .microphoneIcon {
+  color: white;
+}
+
+/* Volume visualization */
+.volumeBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  transition: height 0.1s ease;
+  border-radius: 0 0 50% 50%;
+}
+
+.microphoneButton.recording .volumeBar {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+/* Pulse animation for recording */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 20px rgba(209, 52, 56, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(209, 52, 56, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(209, 52, 56, 0.4);
+  }
+}
+
+/* Status text */
+.statusText {
+  text-align: center;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.statusText.recording {
+  color: #d13438;
+  font-weight: 600;
+}
+
+.statusText.connecting {
+  color: #0078d4;
+}
+
+.statusText.error {
+  color: #d13438;
+}
+
+.statusText.idle {
+  color: #605e5c;
+}
+
+/* Error icon */
+.errorIcon {
+  color: #d13438;
+  font-size: 16px;
+}
+
+/* Transcription display */
+.transcriptionContainer {
+  width: 100%;
+  max-width: 300px;
+  min-height: 40px;
+  background: #f3f2f1;
+  border: 1px solid #d2d0ce;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
+  transition: all 0.2s ease;
+}
+
+.transcriptionContainer.hasText {
+  background: #fff;
+  border-color: #0078d4;
+  box-shadow: 0 2px 8px rgba(0, 120, 212, 0.1);
+}
+
+.transcriptionText {
+  font-size: 14px;
+  line-height: 1.4;
+  color: #323130;
+  text-align: center;
+  word-wrap: break-word;
+  min-height: 16px;
+}
+
+.transcriptionText.placeholder {
+  color: #a19f9d;
+  font-style: italic;
+}
+
+/* Connection status indicator */
+.connectionIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.connectionDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #a19f9d;
+  transition: background 0.2s ease;
+}
+
+.connectionDot.connected {
+  background: #107c10;
+  animation: connectedPulse 2s infinite ease-in-out;
+}
+
+.connectionDot.connecting {
+  background: #ffd700;
+  animation: connectingPulse 1s infinite ease-in-out;
+}
+
+.connectionDot.error {
+  background: #d13438;
+}
+
+@keyframes connectedPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes connectingPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+/* Debug information */
+.debugInfo {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f8f8f8;
+  border: 1px solid #e1dfdd;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .speechContainer {
+    padding: 12px 8px;
+    max-width: 100%;
+  }
+  
+  .microphoneButton {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .microphoneIcon {
+    font-size: 20px;
+  }
+  
+  .transcriptionContainer {
+    max-width: 100%;
+    margin: 8px 0;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .microphoneButton.idle {
+    border-width: 3px;
+  }
+  
+  .microphoneButton.recording {
+    border-width: 3px;
+    background: #d13438;
+  }
+  
+  .transcriptionContainer {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .microphoneButton {
+    transition: none;
+  }
+  
+  .microphoneButton:hover {
+    transform: none;
+  }
+  
+  .microphoneButton:active {
+    transform: none;
+  }
+  
+  .pulse,
+  .connectedPulse,
+  .connectingPulse {
+    animation: none;
+  }
+  
+  .volumeBar {
+    transition: none;
+  }
+}

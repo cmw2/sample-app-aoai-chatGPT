@@ -94,3 +94,22 @@
 .uploadedImage {
   margin-right: 70px;
 }
+
+.speechInputContainer {
+  position: absolute;
+  right: 60px;
+  bottom: 8px;
+  z-index: 10;
+}
+
+/* Adjust send button position when speech is enabled */
+.questionInputContainer:has(.speechInputContainer) .questionInputSendButtonContainer {
+  right: 120px;
+}
+
+/* Alternative fallback for browsers that don't support :has() */
+@supports not (selector(:has(*))) {
+  .speechInputContainer ~ .questionInputSendButtonContainer {
+    right: 120px;
+  }
+}

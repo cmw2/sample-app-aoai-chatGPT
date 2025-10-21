@@ -8,6 +8,7 @@ import styles from './QuestionInput.module.css'
 import { ChatMessage } from '../../api'
 import { AppStateContext } from '../../state/AppProvider'
 import { resizeImage } from '../../utils/resizeImage'
+import { SpeechInput } from '../SpeechInput/SpeechInput'
 
 interface Props {
   onSend: (question: ChatMessage['content'], id?: string) => void
@@ -23,6 +24,7 @@ export const QuestionInput = ({ onSend, disabled, placeholder, clearOnSend, conv
 
   const appStateContext = useContext(AppStateContext)
   const OYD_ENABLED = appStateContext?.state.frontendSettings?.oyd_enabled || false;
+  const speechEnabled = appStateContext?.state.frontendSettings?.speech_enabled || false;
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -72,6 +74,18 @@ export const QuestionInput = ({ onSend, disabled, placeholder, clearOnSend, conv
     setQuestion(newValue || '')
   }
 
+  const handleSpeechTranscription = (transcription: string, isFinal: boolean) => {
+    setQuestion(transcription)
+    
+    // Auto-send when speech input is final and we have text
+    if (isFinal && transcription.trim() && !disabled) {
+      // Small delay to allow the UI to update
+      setTimeout(() => {
+        sendQuestion()
+      }, 100)
+    }
+  }
+
   const sendQuestionDisabled = disabled || !question.trim()
 
   return (
@@ -104,6 +118,17 @@ export const QuestionInput = ({ onSend, disabled, placeholder, clearOnSend, conv
           </label>
         </div>)}
       {base64Image && <img className={styles.uploadedImage} src={base64Image} alt="Uploaded Preview" />}
+      
+      {/* Speech Input Component */}
+      {speechEnabled && (
+        <div className={styles.speechInputContainer}>
+          <SpeechInput
+            onTranscription={handleSpeechTranscription}
+            disabled={disabled}
+          />
+        </div>
+      )}
+      
       <div
         className={styles.questionInputSendButtonContainer}
         role="button"

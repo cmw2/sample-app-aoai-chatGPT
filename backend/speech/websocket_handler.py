@@ -57,31 +57,50 @@ class SpeechWebSocketHandler:
             
             logging.info(f"Starting speech recognition session: {session_id} ({self.get_active_session_count() + 1}/{self.max_concurrent_sessions})")
             
+            # Store the event loop for callback use
+            loop = asyncio.get_event_loop()
+            
             # Create speech recognizer and audio stream
             recognizer, audio_stream = self.speech_service.create_recognizer_from_stream()
             
-            # Store session info
+            # Store session info including WebSocket connection
             self.active_sessions[session_id] = {
                 'recognizer': recognizer,
                 'audio_stream': audio_stream,
-                'is_active': True
+                'is_active': True,
+                'loop': loop,  # Store loop reference for callbacks
+                'websocket': websocket  # Store WebSocket connection for callbacks
             }
             
             # Set up callbacks for this specific recognizer (not the shared service)
             def on_recognizing(evt):
                 if evt.result.text:
-                    asyncio.create_task(self._send_partial_result(session_id, evt.result.text))
+                    try:
+                        # Use run_coroutine_threadsafe to properly schedule the coroutine
+                        asyncio.run_coroutine_threadsafe(
+                            self._send_partial_result(session_id, evt.result.text), 
+                            loop
+                        )
+                    except Exception as e:
+                        logging.error(f"Error in on_recognizing callback: {e}")
             
             def on_recognized(evt):
                 if evt.result.text:
-                    result_data = {
-                        'text': evt.result.text,
-                        'confidence': getattr(evt.result, 'confidence', 1.0),
-                        'offset': evt.result.offset,
-                        'duration': evt.result.duration,
-                        'reason': str(evt.result.reason)
-                    }
-                    asyncio.create_task(self._send_final_result(session_id, evt.result.text, result_data))
+                    try:
+                        result_data = {
+                            'text': evt.result.text,
+                            'confidence': getattr(evt.result, 'confidence', 1.0),
+                            'offset': evt.result.offset,
+                            'duration': evt.result.duration,
+                            'reason': str(evt.result.reason)
+                        }
+                        # Use run_coroutine_threadsafe to properly schedule the coroutine
+                        asyncio.run_coroutine_threadsafe(
+                            self._send_final_result(session_id, evt.result.text, result_data), 
+                            loop
+                        )
+                    except Exception as e:
+                        logging.error(f"Error in on_recognized callback: {e}")
             
             def on_session_started(evt):
                 logging.debug(f"Speech recognition session started: {session_id}")
@@ -115,13 +134,19 @@ class SpeechWebSocketHandler:
             })
             
             # Handle incoming WebSocket messages
-            async for message in websocket.websocket.iter_message():
-                if isinstance(message, bytes):
-                    # Audio data received
-                    await self._handle_audio_data(session_id, message)
-                elif isinstance(message, str):
-                    # Control message received
-                    await self._handle_control_message(session_id, message)
+            while True:
+                try:
+                    message = await websocket.receive()
+                    if isinstance(message, bytes):
+                        # Audio data received
+                        await self._handle_audio_data(session_id, message)
+                    elif isinstance(message, str):
+                        # Control message received
+                        await self._handle_control_message(session_id, message)
+                except Exception as e:
+                    # WebSocket connection closed or other error
+                    logging.debug(f"WebSocket session {session_id} ended: {e}")
+                    break
                     
         except Exception as e:
             logging.error(f"Error in speech WebSocket session {session_id}: {e}")
@@ -270,9 +295,15 @@ class SpeechWebSocketHandler:
     async def _send_message(self, session_id: str, message: dict):
         """Send a message to the WebSocket client."""
         try:
+            # Get the WebSocket connection from session data
+            session = self.active_sessions.get(session_id)
+            if not session or not session.get('websocket'):
+                logging.error(f"No active WebSocket connection for session {session_id}")
+                return
+            
             message['session_id'] = session_id
             message['timestamp'] = asyncio.get_event_loop().time()
-            await websocket.send(json.dumps(message))
+            await session['websocket'].send(json.dumps(message))
         except Exception as e:
             logging.error(f"Error sending message to session {session_id}: {e}")
     
